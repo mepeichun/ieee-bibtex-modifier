@@ -2,6 +2,11 @@
 
 A web-based tool for automatically modifying BibTeX entries to conform to IEEE-style formatting requirements, specifically focusing on author list shortening and journal name abbreviation.
 
+## Live Demo
+
+Please visit this link for quick use:
+https://mepeichun.github.io/ieee-bibtex-modifier/
+
 ## Features
 
 - **Author List Shortening**: Automatically truncates long author lists (configurable threshold) to "first author and others" format
