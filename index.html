@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IEEE-style BibTeX Modifier</title>
+
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Font Awesome -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- DataTables CSS (only styling, no JS dependency used) -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
+
+<style>
+:root {
+    --primary-color: #00629B; /* IEEE blue */
+    --secondary-color: #EEEEEE;
+    --accent-color: #FF6D00;
+    --text-color: #333333;
+    --light-text: #777777;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--text-color);
+    line-height: 1.6;
+    background-color: #f8f9fa;
+}
+
+.header {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 1.5rem 1rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 5px solid var(--accent-color);
+}
+
+.header h1 {
+    font-weight: 700;
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.container-main {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.panel {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    padding: 1rem;
+}
+
+
+
+
+
+
+/* 修改现有的 .io-row 和 .io-col */
+.io-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    width: 100%;
+}
+
+.io-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 360px;
+    min-width: 0; /* 重要：防止flex项溢出 */
+}
+
+
+/* highlights */
+.highlight {
+    background: linear-gradient(90deg, rgba(255,109,0,0.18), rgba(255,109,0,0.08));
+    border-bottom: 2px solid rgba(255,109,0,0.32);
+    padding: 0 2px;
+    border-radius: 2px;
+}
+
+
+/* 确保文本区域和输出区域不会溢出 */
+textarea, #renderedOutput {
+    width: 100%;
+    height: 360px;
+    resize: vertical;
+    font-family: Lucida Console, Source Code Pro, monospace;
+    font-size: 0.9rem;
+    padding: .75rem;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    background: #fdfdfd;
+    box-sizing: border-box; /* 重要：包含padding在宽度内 */
+}
+
+/* 特别为输出区域添加 */
+#renderedOutput {
+    background: #ffffff;
+    white-space: pre;
+    overflow: auto;
+    box-sizing: border-box;
+}
+
+/* 改进响应式设计 */
+@media (max-width: 900px) {
+    .io-row { 
+        flex-direction: column; 
+        gap: 0.5rem;
+    }
+    textarea, #renderedOutput { 
+        height: 300px; 
+    }
+    .io-col {
+        min-height: 300px;
+    }
+}
+
+/* 如果需要更精确的宽度控制，可以添加最大宽度 */
+@media (min-width: 901px) {
+    .io-col {
+        max-width: calc(50% - 0.5rem); /* 考虑gap的一半 */
+    }
+}
+
+
+
+
+/* small helper styles */
+.controls {
+    display:flex;
+    gap: .5rem;
+    align-items:center;
+    margin-top:.6rem;
+}
+
+.config-section { margin-top: 1.25rem; }
+
+.table-editable td, .table-editable th { vertical-align: middle; }
+
+.footer {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 1rem;
+    margin-top: 1.5rem;
+    text-align: center;
+    font-size: 0.9rem;
+    border-radius: 0 0 8px 8px;
+}
+
+/* responsiveness */
+@media (max-width: 900px) {
+    .io-row { flex-direction: column; }
+    textarea, #renderedOutput { height: 300px; }
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="container-main d-flex justify-content-between align-items-center">
+    <h1><i class="fa-solid fa-file-lines"></i> IEEE BibTeX Modifier</h1>
+    <div class="text-end">
+      <div style="font-size:.85rem">Author-shortening & journal-abbrev editor</div>
+    </div>
+  </div>
+</div>
+
+<div class="container container-main">
+  <div class="panel">
+
+    <div class="io-row">
+      <div class="io-col">
+        <label class="form-label"><strong>Original BibTeX (input)</strong></label>
+        <textarea id="inputBib" placeholder="Paste original bibtex here...">@ARTICLE{13579,
+  author={LN1, FN1 and LN2, FN2 and LN3, FN3 and LN4, FN4 and LN5, FN5 and LN6, FN6 and LN7, FN7 and LN8, FN8 and LN9, FN9},
+  journal={IEEE Communications Surveys & Tutorials}, 
+  title={This is a Sample Paper Title}, 
+  year={2025},
+  volume={25},
+  number={1},
+  pages={1-30},
+}
+
+@ARTICLE{24680,
+  author={LN1, FN1 and LN2, FN2 and LN3, FN3 and LN4, FN4 and LN5, FN5 and LN6, FN6 and LN7, FN7},
+  journal={IEEE Wireless Communications}, 
+  title={Another Example Title}, 
+  year={2025},
+  volume={30},
+  number={1},
+  pages={0-13}
+}</textarea>
+
+        <div class="controls mt-2">
+          <button id="refineBtn" class="btn btn-primary"><i class="fa-solid fa-magic"></i> Refine</button>
+          <button id="clearBtn" class="btn btn-outline-secondary"><i class="fa-solid fa-trash"></i> Clear Input</button>
+        </div>
+      </div>
+
+      <div class="io-col">
+        <label class="form-label"><strong>Modified BibTeX (output)</strong></label>
+        <div id="renderedOutput" aria-live="polite"></div>
+
+        <div style="display:flex; gap:.5rem; margin-top:.5rem;">
+          <button id="copyBtn" class="btn btn-success"><i class="fa-solid fa-copy"></i> Copy</button>
+          <!-- <button id="pasteToLeftBtn" class="btn btn-outline-secondary"><i class="fa-solid fa-arrow-left"></i> Paste output to left</button> -->
+          <button id="downloadBtn" class="btn btn-outline-primary"><i class="fa-solid fa-download"></i> Download modified .bib</button>
+        </div>
+
+        <!-- raw bib for copying/downloading (kept hidden visually but accessible) -->
+        <textarea id="outputRaw" style="display:none;"></textarea>
+      </div>
+    </div>
+
+    <!-- Configuration -->
+    <div class="config-section">
+      <h5 class="journal-title"><i class="fa-solid fa-gear"></i>&nbsp; Configuration</h5>
+
+      <div class="row">
+        <div class="col-md-4">
+          <div class="panel p-3">
+            <label class="form-label"><strong>Author shortening</strong></label>
+            <div class="mb-2">
+              <label class="form-label small">If number of authors &ge; </label>
+              <input id="authorThreshold" type="number" class="form-control" value="6" min="1">
+            </div>
+            <div>
+              <label class="form-label small">Replacement style</label>
+              <select id="authorMode" class="form-select">
+                <option value="others" selected>first author and others</option>
+                <!-- <option value="et-al">first author, et al.</option> -->
+              </select>
+            </div>
+
+            <!-- <div class="mt-3 small text-muted">
+              Example: when threshold = 6 authors → <code>AA, BB and others</code>
+            </div> -->
+          </div>
+        </div>
+
+        <div class="col-md-8">
+          <div class="panel p-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <label class="form-label mb-0"><strong>Journal full name ↔ abbreviation (editable)</strong></label>
+              <div>
+                <button id="addJournalRow" class="btn btn-sm btn-outline-success"><i class="fa-solid fa-plus"></i> Add</button>
+                <button id="exportConfig" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-file-export"></i> Export JSON</button>
+                <button id="importConfigBtn" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-file-import"></i> Import JSON</button>
+                <input id="importConfig" type="file" accept="application/json" style="display:none;">
+              </div>
+            </div>
+
+            <div style="max-height:220px; overflow:auto;">
+              <table id="journalTable" class="table table-sm table-editable">
+                <thead>
+                  <tr>
+                    <th style="width:48%;">Full Journal Name</th>
+                    <th style="width:48%;">Abbreviation</th>
+                    <th style="width:4%;"></th>
+                  </tr>
+                </thead>
+                <tbody id="journalTableBody">
+                  <!-- rows filled by JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="mt-2 small text-muted">
+              Default mappings included. Edit or add your own; mapping matching is case-insensitive and trimmed.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <small class="text-muted">Notes: The modifier attempts to preserve original field order. It performs simple parsing and best-effort diffs to highlight modifications. For complex / non-standard BibTeX formatting the result may need small manual adjustments.</small>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    You can modify the journal mapping table and the threshold for #author, then click <strong>Refine</strong>.
+  </div>
+</div>
+
+<script>
+/* --------------------------
+   Data & Utilities
+   -------------------------- */
+/* Default journal mapping (you can add more) */
+let journalMappings = [
+  {full: "IEEE Communications Surveys & Tutorials", abbr: "IEEE Commun. Surv. Tutor."},
+  {full: "IEEE Wireless Communications", abbr: "IEEE Wirel. Commun."},
+  {full: "IEEE Transactions on Communications", abbr: "IEEE Trans. Commun."},
+  {full: "IEEE Transactions on Vehicular Technology", abbr: "IEEE Trans. Veh. Technol."},
+  {full: "IEEE Transactions on Mobile Computing", abbr: "IEEE Trans. Mobile Comput."},
+  {full: "IEEE Journal on Selected Areas in Communications", abbr: "IEEE J. Sel. Areas Commun."},
+  {full: "IEEE Transactions on Wireless Communications", abbr: "IEEE Trans. Wireless Commun."},
+  {full: "IEEE Transactions on Network and Service Management", abbr: "IEEE Trans. Netw. Serv. Manag."},
+  {full: "IEEE Transactions on Cognitive Communications and Networking", abbr: "IEEE Trans. Cogn. Commun. Netw."}, 
+  {full: "IEEE Transactions on Network Science and Engineering", abbr: "IEEE Trans. Netw. Sci. Eng."}, 
+  {full: "IEEE Internet of Things Journal", abbr: "IEEE Internet Things J."},
+  {full: "IEEE Transactions on Information Theory", abbr: "IEEE Trans. Inform. Theory"},
+  {full: "IEEE Transactions on Signal Processing", abbr: "IEEE Trans. Signal Processing"},
+  {full: "IEEE Transactions on Multimedia", abbr: "IEEE Trans. Multimedia"},
+  {full: "IEEE Transactions on Circuits and Systems for Video Technology", abbr: "IEEE Trans. Circuits Syst. Video Technol."},
+  {full: "IEEE Transactions on Broadcasting", abbr: "IEEE Trans. Broadcast."},
+  {full: "IEEE Communications Letters", abbr:"IEEE Commun. Lett."},
+  {full: "IEEE Signal Processing Letters", abbr:"IEEE Signal Processing Lett."},
+  {full: "IEEE/ACM Transactions on Networking", abbr:"IEEE/ACM Trans. Netw."},
+  {full: "IEEE Wireless Communications Letters", abbr:"IEEE Wirel. Commun. Lett."},
+  {full: "IEEE Open Journal of the Communications Society", abbr:"IEEE Open J. Commun. Soc."},
+  {full: "IEEE Transactions on Green Communications and Networking", abbr:"IEEE Trans. Green Commun. Netw."},
+  {full: "IEEE Transactions on Machine Learning in Communications and Networking", abbr:"IEEE Trans. Mach. Learn. Commun. Netw."},
+];
+
+/* helpers for DOM */
+function el(tag, attrs={}, children=[]) {
+  const e = document.createElement(tag);
+  Object.entries(attrs).forEach(([k,v])=>{
+    if(k==='class') e.className = v;
+    else if(k==='html') e.innerHTML = v;
+    else e.setAttribute(k,v);
+  });
+  children.forEach(c => e.appendChild(c));
+  return e;
+}
+
+/* safe trim braces and quotes in field values */
+function stripOuter(val) {
+  if(!val) return "";
+  let s = val.trim();
+  if((s.startsWith("{") && s.endsWith("}")) || (s.startsWith("\"") && s.endsWith("\""))) {
+    return s.slice(1, -1);
+  }
+  return s;
+}
+
+/* restore with braces */
+function wrapBraces(s) {
+  return "{" + s + "}";
+}
+
+/* naive bibtex entry splitter: find top-level @...{ ... } blocks (best-effort) */
+function splitEntries(input) {
+  const entries = [];
+  let i = 0;
+  const n = input.length;
+  while(i < n) {
+    // find next '@'
+    let at = input.indexOf('@', i);
+    if(at === -1) break;
+    // get type up to '{'
+    let brace = input.indexOf('{', at);
+    if(brace === -1) break;
+    // find matching closing brace for this entry by counting braces
+    let depth = 0;
+    let j = brace;
+    for(; j < n; ++j) {
+      if(input[j] === '{') depth++;
+      else if(input[j] === '}') {
+        depth--;
+        if(depth === 0) { j++; break; }
+      }
+    }
+    if(j > brace) {
+      entries.push(input.slice(at, j).trim());
+      i = j;
+    } else {
+      // fallback: take until next '@' or end
+      let nextAt = input.indexOf('@', at+1);
+      if(nextAt === -1) {
+        entries.push(input.slice(at).trim());
+        break;
+      } else {
+        entries.push(input.slice(at, nextAt).trim());
+        i = nextAt;
+      }
+    }
+  }
+  if(entries.length === 0 && input.trim()) {
+    // maybe user pasted single entry without leading '@'
+    entries.push(input.trim());
+  }
+  return entries;
+}
+
+/* parse a single entry into {type, key, fields: {k:v,...}, rawOrder: [k1,k2,...]} */
+function parseEntry(text) {
+  // match @TYPE{key, ...}
+  const headerMatch = text.match(/^@([A-Za-z]+)\s*\{\s*([^,]+)\s*,/s);
+  let type = headerMatch ? headerMatch[1] : null;
+  let key = headerMatch ? headerMatch[2].trim() : null;
+  // extract inside braces after the first comma up to the final }
+  let inside = text;
+  let firstBrace = text.indexOf('{');
+  if(firstBrace >= 0) inside = text.slice(firstBrace+1, text.lastIndexOf('}'));
+  // remove the key portion
+  let afterKey = inside;
+  const firstComma = inside.indexOf(',');
+  if(firstComma >= 0) afterKey = inside.slice(firstComma+1);
+  // parse fields lines using regex that captures key = {value} or key = "value" or key = value
+  let fields = {};
+  let order = [];
+  const fieldRegex = /([A-Za-z0-9_\-]+)\s*=\s*({(?:(?:[^{}]|{[^}]*})*)}|"(?:[^"\\]|\\.)*"|[^,]+)(?:,?)/gsm;
+  let m;
+  while((m = fieldRegex.exec(afterKey)) !== null) {
+    const k = m[1].trim();
+    const rawVal = m[2].trim();
+    fields[k.toLowerCase()] = rawVal;
+    order.push(k.toLowerCase());
+  }
+  return {type, key, fields, order, raw: text};
+}
+
+/* rebuild entry from parsed object */
+function buildEntry(parsed) {
+  const type = parsed.type || "ARTICLE";
+  const key = parsed.key || "key";
+  const order = parsed.order || Object.keys(parsed.fields || {});
+  let sb = `@${type}{${key},\n`;
+  order.forEach((k, idx) => {
+    let val = parsed.fields[k] || "";
+    // ensure braces if not numeric
+    const numeric = /^[0-9]+$/.test(stripOuter(val));
+    if(!numeric) {
+      // val might already be wrapped, so keep as-is but ensure braces
+      const s = stripOuter(val);
+      val = wrapBraces(s);
+    }
+    sb += `  ${k}=${val}`;
+    sb += ",\n";
+  });
+  // remove trailing comma if exists
+  if(sb.endsWith(",\n")) sb = sb.slice(0, -2) + "\n";
+  sb += "}\n\n";
+  return sb;
+}
+
+/* count authors in author field (split by ' and ' at top level) */
+function splitAuthors(authFieldVal) {
+  // author field may be e.g., "Yang, Wanting and Du, Hongyang and ..." or "First Last and ..."
+  const s = stripOuter(authFieldVal);
+  // split on ' and ' but avoid splitting inside braces (best-effort)
+  // very simplistic: split by " and " that are not inside braces or quotes
+  const parts = [];
+  let cur = "";
+  let depth = 0;
+  for (let i=0;i<s.length;i++) {
+    const ch = s[i];
+    if(ch === '{') depth++;
+    else if(ch === '}') depth = Math.max(0, depth-1);
+    // check substring ' and ' starting here
+    if(depth === 0 && s.slice(i, i+5) === " and ") {
+      parts.push(cur.trim());
+      cur = "";
+      i += 4;
+      continue;
+    } else {
+      cur += ch;
+    }
+  }
+  if(cur.trim()) parts.push(cur.trim());
+  // normalize empty
+  return parts.filter(p => p.length > 0);
+}
+
+/* join authors list back */
+function joinAuthors(list) {
+  return list.join(" and ");
+}
+
+/* apply journal mapping (case-insensitive trim) */
+function mapJournalName(name) {
+  const s = stripOuter(name).trim();
+  for (const m of journalMappings) {
+    if(s.localeCompare(m.full, undefined, {sensitivity:'accent'}) === 0) {
+      return m.abbr;
+    }
+    // case-insensitive trimmed match
+    if(s.toLowerCase() === m.full.toLowerCase()) return m.abbr;
+    // also fuzzy: remove punctuation and compare
+    const a = s.replace(/[\\s\\.,&]+/g,'').toLowerCase();
+    const b = m.full.replace(/[\\s\\.,&]+/g,'').toLowerCase();
+    if(a === b) return m.abbr;
+  }
+  return null;
+}
+
+/* basic token-level diff for highlighting: returns HTML string where tokens present in new but not in old are wrapped */
+function tokenDiffHighlight(oldStr, newStr) {
+  if(oldStr === undefined) oldStr = "";
+  if(newStr === undefined) newStr = "";
+  const a = stripOuter(String(oldStr)).split(/\s+/).filter(Boolean);
+  const b = stripOuter(String(newStr)).split(/\s+/).filter(Boolean);
+  // compute simple set-diff to highlight tokens in new that differ
+  // better: mark tokens that are different at same positions and extra tokens
+  const maxLen = Math.max(a.length, b.length);
+  const parts = [];
+  for(let i=0;i<maxLen;i++) {
+    const ta = a[i] || "";
+    const tb = b[i] || "";
+    if(ta === tb) {
+      if(tb) parts.push(escapeHtml(tb));
+    } else {
+      if(tb) parts.push('<span class="highlight">'+escapeHtml(tb)+'</span>');
+    }
+  }
+  return parts.join(' ');
+}
+
+/* escape html to show in pre */
+function escapeHtml(s) {
+  return String(s)
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;');
+}
+
+/* --------------------------
+   UI: journal mapping table management
+   -------------------------- */
+function refreshJournalTable() {
+  const tbody = document.getElementById('journalTableBody');
+  tbody.innerHTML = '';
+  journalMappings.forEach((m, idx) => {
+    const tr = el('tr');
+    const td1 = el('td');
+    const inp1 = el('input', {class:'form-control form-control-sm', value: m.full});
+    inp1.addEventListener('change', () => { journalMappings[idx].full = inp1.value; });
+    td1.appendChild(inp1);
+    const td2 = el('td');
+    const inp2 = el('input', {class:'form-control form-control-sm', value: m.abbr});
+    inp2.addEventListener('change', () => { journalMappings[idx].abbr = inp2.value; });
+    td2.appendChild(inp2);
+    const td3 = el('td');
+    const delBtn = el('button', {class:'btn btn-sm btn-outline-danger', title: 'Delete'});
+    delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+    delBtn.addEventListener('click', () => {
+      journalMappings.splice(idx,1);
+      refreshJournalTable();
+    });
+    td3.appendChild(delBtn);
+    tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3);
+    tbody.appendChild(tr);
+  });
+}
+
+/* add journal row */
+document.getElementById('addJournalRow').addEventListener('click', () => {
+  journalMappings.push({full: "New Journal Full Name", abbr: "Abbrev"});
+  refreshJournalTable();
+});
+
+/* export config JSON */
+document.getElementById('exportConfig').addEventListener('click', () => {
+  const cfg = {
+    authorThreshold: Number(document.getElementById('authorThreshold').value) || 6,
+    authorMode: document.getElementById('authorMode').value,
+    journalMappings
+  };
+  const blob = new Blob([JSON.stringify(cfg, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'bib_modifier_config.json';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+/* import config JSON */
+document.getElementById('importConfigBtn').addEventListener('click', () => {
+  document.getElementById('importConfig').value = '';
+  document.getElementById('importConfig').click();
+});
+document.getElementById('importConfig').addEventListener('change', (ev) => {
+  const f = ev.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const obj = JSON.parse(e.target.result);
+      if(obj.authorThreshold) document.getElementById('authorThreshold').value = obj.authorThreshold;
+      if(obj.authorMode) document.getElementById('authorMode').value = obj.authorMode;
+      if(Array.isArray(obj.journalMappings)) {
+        journalMappings = obj.journalMappings.map(x => ({full: x.full||"", abbr: x.abbr||""}));
+      }
+      refreshJournalTable();
+      alert('Config imported.');
+    } catch(err) {
+      alert('Failed to parse JSON: ' + err);
+    }
+  };
+  reader.readAsText(f);
+});
+
+/* --------------------------
+   Main refine logic
+   -------------------------- */
+document.getElementById('refineBtn').addEventListener('click', refineBib);
+document.getElementById('clearBtn').addEventListener('click', ()=>{
+  document.getElementById('inputBib').value = '';
+  document.getElementById('renderedOutput').innerText = '';
+  document.getElementById('outputRaw').value = '';
+});
+
+document.getElementById('copyBtn').addEventListener('click', ()=>{
+  const raw = document.getElementById('outputRaw').value;
+  if(!raw) return alert('No output to copy. Click Refine first.');
+  navigator.clipboard.writeText(raw).then(()=> {
+    alert('Copied to clipboard.');
+  }).catch(()=> alert('Copy failed.'));
+});
+
+
+document.getElementById('downloadBtn').addEventListener('click', ()=>{
+  const raw = document.getElementById('outputRaw').value;
+  if(!raw) return alert('No output to download.');
+  const blob = new Blob([raw], {type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'modified.bib';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+function refineBib() {
+  // refresh mapping table to capture any edits
+  // (inputs are already bound via change events, but ensure values read)
+  // read configuration
+  const threshold = Number(document.getElementById('authorThreshold').value) || 6;
+  const authorMode = document.getElementById('authorMode').value; // 'others' or 'et-al'
+  // parse left input
+  const input = document.getElementById('inputBib').value;
+  if(!input.trim()) {
+    alert('Please paste BibTeX input on the left.');
+    return;
+  }
+  const entries = splitEntries(input);
+  const modifiedEntries = [];
+  const renderedParts = [];
+  for(const eText of entries) {
+    const parsed = parseEntry(eText);
+    // copy fields to a new object to edit
+    const newParsed = {
+      type: parsed.type,
+      key: parsed.key,
+      fields: Object.assign({}, parsed.fields),
+      order: parsed.order.slice()
+    };
+
+    // 1) author shortening
+    if(newParsed.fields['author']) {
+      const authors = splitAuthors(newParsed.fields['author']);
+      if(authors.length >= threshold) {
+        const first = authors[0];
+        let replacement = "";
+        if(authorMode === 'others') {
+          replacement = first + " and others";
+        } else {
+          replacement = first + " and et al.";
+        }
+        newParsed.fields['author'] = wrapBraces(replacement);
+      }
+    }
+
+    // 2) journal -> abbreviation
+    if(newParsed.fields['journal']) {
+      const mapped = mapJournalName(newParsed.fields['journal']);
+      if(mapped) {
+        newParsed.fields['journal'] = wrapBraces(mapped);
+      }
+    }
+
+    // Ensure 'order' includes all fields present
+    newParsed.order = newParsed.order.filter(Boolean);
+    Object.keys(newParsed.fields).forEach(k => {
+      if(!newParsed.order.includes(k)) newParsed.order.push(k);
+    });
+
+    // Build raw bj
+    const outRaw = buildEntry(newParsed);
+    modifiedEntries.push({original: parsed, modified: newParsed, raw: outRaw});
+  }
+
+  // Render highlighted HTML and assemble raw output
+  let rawAll = "";
+  let renderedHtml = "";
+  for(const item of modifiedEntries) {
+    rawAll += item.raw;
+    // produce highlighted rendering by comparing field by field
+    const parsed = item.original;
+    const mod = item.modified;
+    // preserve the header line
+    const header = `@${mod.type}{${mod.key},\n`;
+    renderedHtml += escapeHtml(header);
+    // for each field in mod.order, compute highlight vs original
+    for(const k of mod.order) {
+      const oldVal = parsed.fields ? parsed.fields[k] : undefined;
+      const newVal = mod.fields[k];
+      const displayKey = k + "=";
+      let displayValHtml;
+      // if oldVal equals newVal (string compare after strip) -> show normal
+      if(stripOuter(oldVal || "") === stripOuter(newVal || "")) {
+        displayValHtml = escapeHtml(newVal);
+      } else {
+        // highlight changed tokens
+        displayValHtml = tokenDiffHighlight(oldVal || "", newVal || "");
+        // wrap with braces visual
+        displayValHtml = "{" + displayValHtml + "}";
+      }
+      renderedHtml += "  " + escapeHtml(displayKey) + displayValHtml + ",\n";
+    }
+    renderedHtml = renderedHtml.replace(/,\n$/, '\n'); // remove final comma
+    renderedHtml += escapeHtml("}\n\n");
+  }
+
+  // put into DOM
+  document.getElementById('renderedOutput').innerHTML = renderedHtml;
+  document.getElementById('outputRaw').value = rawAll;
+  // scroll to output
+  document.getElementById('renderedOutput').scrollTop = 0;
+}
+
+/* --------------------------
+   Small UX: init table and sample
+   -------------------------- */
+refreshJournalTable();
+
+/* auto-run refine on load */
+window.addEventListener('load', () => {
+  // small delay to allow DOM
+  setTimeout(() => { document.getElementById('refineBtn').click(); }, 150);
+});
+</script>
+
+</body>
+</html>
